@@ -39,6 +39,23 @@ self.addEventListener("fetch", event => {
   }
 
   event.respondWith(
-    caches.match(event.request).then(res => res || fetch(event.request))
+    caches.match(event.request).then(res => {
+      if (res) {
+        return res;
+      }
+      return fetch(event.request).catch(error => {
+        console.error('Fetch failed:', error);
+        // Return a basic offline response for navigation requests
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+        // For other requests, return a simple error response
+        return new Response('Network error: Unable to fetch resource', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      });
+    })
   );
 });

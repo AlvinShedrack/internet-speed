@@ -13,6 +13,22 @@ let lastSpeed = 0;
 const TEST_FILE_URL = "https://www.google.com/images/phd/px.gif";
 
 // ----------------------
+// CONNECTION CHECK
+// ----------------------
+async function checkConnection() {
+  try {
+    const response = await fetch("https://www.google.com/favicon.ico", {
+      method: 'HEAD',
+      cache: 'no-cache',
+      mode: 'no-cors'
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// ----------------------
 // FULL SPEED TEST
 // ----------------------
 async function checkSpeed() {
@@ -52,10 +68,16 @@ async function checkSpeed() {
   } catch (error) {
     speedValue.textContent = "--";
 
-    if (!navigator.onLine) {
+    const isOnline = await checkConnection();
+
+    if (!navigator.onLine || !isOnline) {
       statusText.textContent = "No internet connection";
+    } else if (error.name === 'AbortError') {
+      statusText.textContent = "Connection timeout";
+    } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+      statusText.textContent = "Network blocked or unreachable";
     } else {
-      statusText.textContent = "Network blocked / slow response";
+      statusText.textContent = "Connection error: " + error.message;
     }
 
     console.error("Speed test error:", error);
@@ -86,6 +108,16 @@ function getSpeedStatus(speed) {
   return "Excellent";
 }
 
+let lastNotificationTime = 0;
+
+// ----------------------
+// MOBILE DETECTION
+// ----------------------
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         window.innerWidth <= 768;
+}
+
 // ----------------------
 // NOTIFICATIONS
 // ----------------------
@@ -93,12 +125,23 @@ async function updateNotification(speed) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
-  const title = "Internet Speed Monitor";
+  // Only notify on mobile devices (likely using SIM card network)
+  if (!isMobileDevice()) return;
+
+  const speedNum = parseFloat(speed);
+  const now = Date.now();
+
+  // Only notify if speed is slow (< 5 Mbps) and at least 5 minutes since last notification
+  if (speedNum >= 5 || (now - lastNotificationTime) < 300000) return;
+
+  lastNotificationTime = now;
+
+  const title = "Mobile Speed Alert";
   const options = {
-    body: `Speed: ${speed} Mbps`,
+    body: `Slow mobile speed: ${speed} Mbps`,
     icon: "icons/icon-192.png",
     badge: "icons/icon-192.png",
-    tag: "speed-monitor",
+    tag: "speed-alert",
     renotify: true
   };
 
