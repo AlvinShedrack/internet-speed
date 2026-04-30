@@ -1,4 +1,4 @@
-const CACHE_NAME = "speed-monitor-v3";
+const CACHE_NAME = "speed-monitor-v4";
 
 const FILES = [
   "./",
@@ -31,13 +31,14 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("fetch", event => {
-  // DO NOT cache speed test file
-  if (event.request.url.includes("Fronalpstock_big.jpg")) {
+
+  // ❌ DO NOT cache test file
+  if (event.request.url.includes("px.gif")) {
     event.respondWith(fetch(event.request));
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(res => res || fetch(event.request))
   );
 });

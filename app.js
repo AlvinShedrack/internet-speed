@@ -9,8 +9,8 @@ let fastInterval = null;
 let fullTestInterval = null;
 let lastSpeed = 0;
 
-// Stable test file (mobile friendly)
-const TEST_FILE_URL = "https://upload.wikimedia.org/wikipedia/commons/3/3f/Fronalpstock_big.jpg";
+// ✅ Lightweight test file (mobile friendly)
+const TEST_FILE_URL = "https://www.google.com/images/phd/px.gif";
 
 // ----------------------
 // FULL SPEED TEST
@@ -20,7 +20,7 @@ async function checkSpeed() {
     statusText.textContent = "Testing real speed...";
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5 sec timeout
 
     const startTime = performance.now();
 
@@ -33,6 +33,9 @@ async function checkSpeed() {
 
     const endTime = performance.now();
     clearTimeout(timeout);
+
+    // ⚠️ Prevent divide errors
+    if (data.size === 0) throw new Error("Empty response");
 
     const durationSeconds = (endTime - startTime) / 1000;
     const bitsLoaded = data.size * 8;
@@ -48,7 +51,13 @@ async function checkSpeed() {
 
   } catch (error) {
     speedValue.textContent = "--";
-    statusText.textContent = "Check connection / HTTPS required";
+
+    if (!navigator.onLine) {
+      statusText.textContent = "No internet connection";
+    } else {
+      statusText.textContent = "Network blocked / slow response";
+    }
+
     console.error("Speed test error:", error);
   }
 }
