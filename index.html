@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Internet Speed Monitor</title>
+  <meta name="theme-color" content="#243865" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Speed Monitor" />
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <h1>Internet Speed Monitor</h1>
+      <p class="subtitle">Live internet speed checker</p>
+
+      <div class="speed-box">
+        <span id="speedValue">--</span>
+        <small>Mbps</small>
+      </div>
+
+      <div class="status">
+        <p><strong>Status:</strong> <span id="statusText">Waiting...</span></p>
+        <p><strong>Last checked:</strong> <span id="lastChecked">--</span></p>
+      </div>
+
+      <button id="startBtn">Start Monitoring</button>
+      <button id="notifyBtn" class="secondary">Enable Notifications</button>
+
+      <p class="note">
+        Keep the app open for continuous live monitoring. Notifications update while supported by the browser.
+      </p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
