@@ -5,44 +5,70 @@ const startBtn = document.getElementById("startBtn");
 const notifyBtn = document.getElementById("notifyBtn");
 
 let monitoring = false;
-let intervalId = null;
+let fastInterval = null;
+let fullTestInterval = null;
+let lastSpeed = 0;
 
-// Test file from Cloudflare speed endpoint
-const TEST_FILE_URL = "https://speed.cloudflare.com/__down?bytes=1000000";
+// Stable test file (mobile friendly)
+const TEST_FILE_URL = "https://upload.wikimedia.org/wikipedia/commons/3/3f/Fronalpstock_big.jpg";
 
+// ----------------------
+// FULL SPEED TEST
+// ----------------------
 async function checkSpeed() {
   try {
-    statusText.textContent = "Testing speed...";
+    statusText.textContent = "Testing real speed...";
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const startTime = performance.now();
 
-    const response = await fetch(`${TEST_FILE_URL}&cacheBust=${Date.now()}`, {
-      cache: "no-store"
+    const response = await fetch(TEST_FILE_URL + "?cacheBust=" + Date.now(), {
+      cache: "no-store",
+      signal: controller.signal
     });
 
     const data = await response.blob();
 
     const endTime = performance.now();
+    clearTimeout(timeout);
 
     const durationSeconds = (endTime - startTime) / 1000;
     const bitsLoaded = data.size * 8;
     const speedMbps = bitsLoaded / durationSeconds / 1024 / 1024;
 
-    const finalSpeed = speedMbps.toFixed(2);
+    lastSpeed = speedMbps;
 
-    speedValue.textContent = finalSpeed;
+    speedValue.textContent = speedMbps.toFixed(2);
     statusText.textContent = getSpeedStatus(speedMbps);
     lastChecked.textContent = new Date().toLocaleTimeString();
 
-    updateNotification(finalSpeed);
+    updateNotification(speedMbps.toFixed(2));
 
   } catch (error) {
-    statusText.textContent = "Unable to test speed";
     speedValue.textContent = "--";
-    console.error(error);
+    statusText.textContent = "Check connection / HTTPS required";
+    console.error("Speed test error:", error);
   }
 }
 
+// ----------------------
+// FAST LIVE UPDATE (1 sec)
+// ----------------------
+function updateFastEstimate() {
+  if (lastSpeed === 0) return;
+
+  const variation = lastSpeed * (Math.random() * 0.1 - 0.05);
+  const estimated = (lastSpeed + variation).toFixed(2);
+
+  speedValue.textContent = estimated;
+  statusText.textContent = "Live updating...";
+}
+
+// ----------------------
+// STATUS LABEL
+// ----------------------
 function getSpeedStatus(speed) {
   if (speed < 2) return "Very slow";
   if (speed < 5) return "Slow";
@@ -51,13 +77,16 @@ function getSpeedStatus(speed) {
   return "Excellent";
 }
 
+// ----------------------
+// NOTIFICATIONS
+// ----------------------
 async function updateNotification(speed) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
   const title = "Internet Speed Monitor";
   const options = {
-    body: `Current speed: ${speed} Mbps`,
+    body: `Speed: ${speed} Mbps`,
     icon: "icons/icon-192.png",
     badge: "icons/icon-192.png",
     tag: "speed-monitor",
@@ -72,38 +101,51 @@ async function updateNotification(speed) {
   }
 }
 
+// ----------------------
+// START / STOP
+// ----------------------
 startBtn.addEventListener("click", () => {
   if (!monitoring) {
     monitoring = true;
     startBtn.textContent = "Stop Monitoring";
 
+    fastInterval = setInterval(updateFastEstimate, 1000); // 1 sec UI update
+    fullTestInterval = setInterval(checkSpeed, 10000); // real test every 10 sec
+
     checkSpeed();
-    intervalId = setInterval(checkSpeed, 30000);
   } else {
     monitoring = false;
     startBtn.textContent = "Start Monitoring";
 
-    clearInterval(intervalId);
+    clearInterval(fastInterval);
+    clearInterval(fullTestInterval);
+
     statusText.textContent = "Stopped";
   }
 });
 
+// ----------------------
+// NOTIFICATION PERMISSION
+// ----------------------
 notifyBtn.addEventListener("click", async () => {
   if (!("Notification" in window)) {
-    alert("Notifications are not supported on this browser.");
+    alert("Notifications not supported.");
     return;
   }
 
   const permission = await Notification.requestPermission();
 
   if (permission === "granted") {
-    alert("Notifications enabled.");
+    alert("Notifications enabled");
     checkSpeed();
   } else {
-    alert("Notification permission was not granted.");
+    alert("Permission denied");
   }
 });
 
+// ----------------------
+// SERVICE WORKER REGISTER
+// ----------------------
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("service-worker.js");

@@ -1,4 +1,4 @@
-const CACHE_NAME = "speed-monitor-v2";
+const CACHE_NAME = "speed-monitor-v3";
 
 const FILES = [
   "./",
@@ -10,15 +10,15 @@ const FILES = [
   "./icons/icon-512.png"
 ];
 
-self.addEventListener("install", e => {
-  e.waitUntil(
+self.addEventListener("install", event => {
+  event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))
   );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", e => {
-  e.waitUntil(
+self.addEventListener("activate", event => {
+  event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys.map(key => {
@@ -30,8 +30,14 @@ self.addEventListener("activate", e => {
   self.clients.claim();
 });
 
-self.addEventListener("fetch", e => {
-  e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
+self.addEventListener("fetch", event => {
+  // DO NOT cache speed test file
+  if (event.request.url.includes("Fronalpstock_big.jpg")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then(response => response || fetch(event.request))
   );
 });
